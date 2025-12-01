@@ -76,6 +76,8 @@ router.get("/quiz", async (req: Request, res: Response) => {
 
   const { quiz_name } = req.query;
 
+  const returnQuiz = await prisma.quiz.findFirst({ where: { title: quiz_name }, select: { quiz_id: true } });
+
   const quiz = await prisma.quiz.findFirst(
     {
       where: { title: quiz_name },
@@ -101,7 +103,7 @@ router.get("/quiz", async (req: Request, res: Response) => {
 });
 
 //Get all quiz 
-router.get("/quizs", async (req: Request, res: Response) => {
+router.get("/quizes", async (req: Request, res: Response) => {
   const quizs = await prisma.quiz.findMany({
     include: {
       questions: {
@@ -143,6 +145,7 @@ router.post("/quiz/answers", async (req: Request, res: Response) => {
   res.json({ "total": array.length, "score": score, });
 
 })
+
 
 
 

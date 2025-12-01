@@ -4,6 +4,7 @@ import Home from "../pages/Home"
 import MainLayout from "../layout/MainLayout"
 import AdminLayout from "../layout/AdminLayout"
 import Quizes from "../pages/Quizes"
+import { Signup } from "@/pages/Signup"
 
 export const quizRouter = createBrowserRouter(
   [
@@ -16,6 +17,13 @@ export const quizRouter = createBrowserRouter(
         { index: true, element: <Home /> },
         { path: "quiz", element: <Quiz /> },
         { path: "quizes", element: <Quizes /> },
+        {
+          path: "auth",
+          children: [
+            { index: false, },
+            { path: "signup", element: <Signup /> },
+          ]
+        },
       ]
 
 

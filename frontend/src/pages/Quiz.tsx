@@ -1,44 +1,20 @@
 
 import React, { useState } from "react";
+import { Progress, } from "@/components/ui/progress.js";
+import { Button } from "@/components/ui/button.js";
+
 import axios from "axios";
 import { useQuiz } from "../context/quiz";
 import { useNavigate } from "react-router";
+import type { Option, Question, UserAnswer, ResultType } from "../types/types.jsx"
+import { ArrowLeft } from "lucide-react";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card.js";
+import { RadioGroup, RadioGroupItem } from "@radix-ui/react-radio-group";
+import { Label } from "@/components/ui/label.js";
 
-
-
-interface Option {
-  option_id: number;
-  option: string;
-}
-
-interface Question {
-  question_id: number;
-  question: string;
-  quiz_id: number;
-  options: Option[];
-}
-
-export interface QuizData {
-  quiz_id: number;
-  created_at: string;
-  title: string;
-  questions: Question[];
-}
-
-// Track user answers
-type UserAnswer = {
-  question_id: number;
-  select_id: number;
-
-};
-
-type ResultType = {
-  total: number;
-  score: number;
-}
 
 const Quiz: React.FC = () => {
-  const { quiz } = useQuiz();
+  const { quiz, setQuiz } = useQuiz();
 
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [userAnswers, setUserAnswers] = useState<UserAnswer[]>([]); // store selected answers
@@ -47,21 +23,18 @@ const Quiz: React.FC = () => {
 
   const navigate = useNavigate();
 
-  // Fetch quiz from backend
-  const GetQuiz = async () => {
-
-    setCurrentQuestionIndex(0);
-    setUserAnswers([]);
-    setResult(null);
-    setQuizInProgress(true);
-  };
 
   // Handle option selection
-  const selectOption = (questionId: number, optionId: number) => {
+  //
+  const handleAnswer = (value: string) => {
+    const numVal = Number(value);
     setUserAnswers((prev) => {
-      const updated = prev.filter((a) => a.question_id != questionId);
-      return [...updated, { question_id: questionId, select_id: optionId }]
+      const updated = prev.filter((a) => a.question_id != currentQuestion.question_id);
+      return [...updated, { question_id: currentQuestion.question_id, select_id: numVal }]
+
+
     });
+    console.log(currentQuestion.question_id, numVal);
   };
 
   // Navigate questions
@@ -80,9 +53,9 @@ const Quiz: React.FC = () => {
   const onSubmit = async () => {
 
     console.log(userAnswers);
-    const result = await axios.post("http://localhost:3000/v1/quiz/answers", { array: userAnswers });
-    setResult(result.data);
-    setQuizInProgress(false);
+    const response = await axios.post("http://localhost:3000/v1/quiz/answers", { array: userAnswers });
+    setResult(response.data);
+    console.log(response.data)
 
   }
 
@@ -91,96 +64,127 @@ const Quiz: React.FC = () => {
 
   }
 
+  const handleGoBack = () => {
+    setQuiz(null);
+    navigate("/quizes");
+  }
+
   // Current question
   const currentQuestion = quiz?.questions[currentQuestionIndex];
 
+
+
   return (
-    <div className="p-5 w-full h-min-screen flex justify-center items-center ">
-      <div className="p-3 flex-col w-min-sm  justify-center items-center  ">
-        <h1 className="text-xl text-black mb-4">Quiz Page</h1>
+    <div className="min-h-screen py-8">
 
-        {!quizInProgress && (
-          <div className="flex gap-3 ">
-            <button
-              className="bg-blue-500 text-white py-2 px-4 rounded"
-              onClick={GetQuiz}
+      {result && (<div> Result : {result.score} </div>)}
+
+      {!result && (<div className="  container mx-auto px-4 max-w-4xl">
+
+
+        {/* Top Bar */}
+        <div className="mb-6">
+          <Button variant="ghost" className="mb-4" onClick={handleGoBack}>
+            <ArrowLeft className="w-4 h-4 mr-2" />
+            Back to Quizzes
+          </Button>
+          <div className="flex items-center justify-between mb-2">
+            <h1 className="text-2xl font-bold text-balance">{quiz.title}</h1>
+            <span className="text-sm text-muted-foreground">
+              Question 1  of 4
+            </span>
+          </div>
+          <Progress value={75} className="h-2" />
+        </div>
+
+
+        {/* Main Question Body  */}
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle className="text-xl text-balance">
+              {currentQuestion.question}
+            </CardTitle>
+          </CardHeader>
+
+          <CardContent>
+            <RadioGroup
+              value={
+                userAnswers.find(
+                  (a) => a.question_id === currentQuestion.question_id
+                )?.select_id.toString() || ""
+              }
+              onValueChange={handleAnswer}
+              className="space-y-3"
             >
-              Attempt Again
-            </button>
+              {currentQuestion.options.map((option) => {
+                const selectedValue =
+                  userAnswers.find(
+                    (a) => a.question_id === currentQuestion.question_id
+                  )?.select_id.toString() || "";
 
-            <button
-              className="bg-blue-500 text-white py-2 px-4 rounded"
-              onClick={handleAnotherQuiz}
-            >
-              Try Some Other Quiz
-            </button>
+                const isSelected = selectedValue === option.option_id.toString();
 
+                return (
+                  <Label
+                    key={option.option_id}
+                    htmlFor={`option-${option.option_id}`}
+                    className={
+                      `flex items-center gap-3 p-4 rounded-lg border-2 cursor-pointer transition-colors ${isSelected
+                        ? "border-primary bg-primary/10"
+                        : "border-muted hover:border-primary/50"}`}
+                  >
+                    <RadioGroupItem
+                      value={option.option_id.toString()}
+                      id={`option-${option.option_id}`}
+                    />
+                    <span>{option.option}</span>
+                  </Label>
+                );
+              })}
+            </RadioGroup>
+          </CardContent>
+        </Card>
 
+        <div className="flex justify-between">
+          <div className="flex gap-3">
 
+            <Button variant={"default"} disabled={currentQuestionIndex == 0} onClick={prevQuestion}> Prev Question </Button>
+            <Button variant={"default"} disabled={quiz.questions.length - 1 == currentQuestionIndex} onClick={nextQuestion}> Next Question </Button>
           </div>
 
-        )}
-
-        {quiz && quizInProgress && currentQuestion && (
-          <div className="mt-4">
-            <h2 className="text-lg font-bold">{quiz.title}</h2>
-
-            <div className="mb-4 flex flex-col justify-center items-center ">
-              <p className="text-xl p-3">
-                Question {currentQuestionIndex + 1}: {currentQuestion.question}
-              </p>
-
-              <ul>
-                {currentQuestion.options.map((opt) => (
-                  <li key={opt.option_id}>
-                    <button
-                      onClick={() => selectOption(currentQuestion.question_id, opt.option_id)}
-                      className={`border p-4 m-1 rounded w-full ${userAnswers.some((answer: UserAnswer) => (answer.select_id == opt.option_id && answer.question_id == currentQuestion.question_id))
-                        ? "bg-blue-500 text-white"
-                        : ""
-                        }`}
-                    >
-                      {opt.option}
-                    </button>
-                  </li>
-                ))}
-              </ul>
-            </div>
-
-            <div className="flex gap-4">
-              <button
-                onClick={prevQuestion}
-                disabled={currentQuestionIndex === 0}
-                className="bg-gray-300 p-2 rounded"
-              >
-                Previous
-              </button>
-
-              <button
-                onClick={nextQuestion}
-                disabled={quiz.questions.length === currentQuestionIndex + 1}
-                className="bg-blue-500 text-white p-2 rounded"
-              >
-                Next
-              </button>
-            </div>
-            <button onClick={onSubmit}> Submit </button>
+          <div>
+            <Button variant={"destructive"} onClick={onSubmit}> Submit </Button>
           </div>
-        )}
-
-        {result && (
-
-          <div className="flex gap-3 flex-col">
-
-            <div>  {result.total}  </div>
-            <div> {result.score}   </div>
 
 
-          </div>
-        )}
-      </div>
-    </div>
+
+        </div>
+
+      </div>)}
+
+
+    </div >
   );
 };
 
 export default Quiz;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

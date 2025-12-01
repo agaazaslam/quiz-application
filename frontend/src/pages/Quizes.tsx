@@ -3,7 +3,8 @@ import { useEffect, useState } from "react"
 import type { QuizData } from "./Quiz";
 import { useNavigate } from "react-router";
 import { useQuiz } from "../context/quiz";
-
+import QuizCard from "@/components/QuizCard";
+import { QuizCard1 } from "@/components/QuizCard";
 const Quizes = () => {
 
   const [quizes, setQuizes] = useState<QuizData[]>([]);
@@ -12,15 +13,6 @@ const Quizes = () => {
   const { setQuiz } = useQuiz();
 
   const navigate = useNavigate();
-
-  const selectQuiz = (e: React.MouseEvent<HTMLDivElement>, quiz: QuizData) => {
-    e.preventDefault();
-    setQuiz(quiz);
-    console.log(quiz);
-    navigate("/quiz");
-
-
-  };
 
   useEffect(
     () => {
@@ -51,24 +43,16 @@ const Quizes = () => {
       {loading && (<div> ....Loading </div>)}
 
       {quizes && (
-        <div>
-          {quizes.map((quiz, index) => {
-            return <div key={index} className="border-2 p-2 border-black" onClick={(e) => selectQuiz(e, quiz)}>
-              {quiz.title}
-            </div>
+        <div className="min-h-[80vh] flex justify-center items-center">
+          <div className=" flex flex-wrap  justify-center items-center gap-6 ">
+            {quizes.map((quiz) => {
+
+              return <QuizCard1 quiz={quiz} />
 
 
+            })}
 
-
-          })}
-
-
-
-
-
-
-
-
+          </div>
         </div>
       )
       }
